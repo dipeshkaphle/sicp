@@ -1,0 +1,227 @@
+#+title: SICP Solutions
+
+#+NAME: assert
+#+BEGIN_SRC racket :lang racket
+(define-syntax-rule (assert_eq? l r)
+(when (not (eq? l r)) (printf "~a != ~a" (quote l ) (quote r ))))
+#+END_SRC
+
+#+RESULTS: assert
+
+#+BEGIN_SRC racket :lang racket :session scratchpad
+(define (square x) (* x x))
+(square 2)
+#+END_SRC
+
+#+RESULTS:
+: 4
+
+* Building Abstractions with Procedures
+
+*** 1.1
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+(assert_eq? (+ 5 3 4) 12)
+(assert_eq? (- 9 1) 8)
+(assert_eq? ( / 6 2 ) 3)
+(assert_eq? 6 (+ (* 2 4) (- 4 6) ) )
+(define a 3)
+(define b (+ a 1))
+
+(assert_eq? 19 (+ a b (* a b)))
+
+(assert_eq? #f (= a b))
+
+(assert_eq? b (if (and (> b a) (< b (* a b)))
+b
+a))
+
+(assert_eq? 16 (cond ((= a 4) 6)
+((= b 4) (+ 6 7 a))
+(else 25)) )
+(assert_eq? 6 (+ 2 (if (> b a) b a) ))
+(assert_eq? 16 (* (cond ((> a b) a)
+((< a b) b)
+(else -1))
+(+ a 1)) )
+
+#+END_SRC
+
+#+RESULTS:
+
+*** 1.2
+
+#+BEGIN_SRC racket :lang racket
+(/ (+ 5 4 (-  2 (- 3 (+ 6 (/ 4 5)))))
+(* 3 (- 6 2) (- 2 7)))
+#+END_SRC
+
+*** 1.3
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+(define (square x) (* x x))
+(define ( sum-of-sq a b ) (+ (square a) (square b)))
+(define (f a b c)
+(cond ((and (< a b) (< a c)) (sum-of-sq b c) )
+        ((and (< b a) (< b c)) (sum-of-sq a c) )
+        (else (sum-of-sq a b))
+)
+)
+(assert_eq? (f 1 2 3) 13)
+(assert_eq? (f 2 2 1) 8)
+#+END_SRC
+
+#+RESULTS:
+
+*** 1.4
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+(define (a-plus-abs-b a b)
+((if (> b 0) + -) a b))
+(assert_eq? (a-plus-abs-b 1 (- 2)) 3)
+(assert_eq? (a-plus-abs-b 1 2) 3)
+#+END_SRC
+
+#+RESULTS:
+
+*** 1.5
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+(define (p) (p))
+(define (test x y)
+    (if (= x 0) 0 y))
+;; Evaluate this for normal and applicative order (test 0 (p))
+;; Normal order will not evaluate p because
+;; that branch isn't taken
+;; Applicative order will evaluate p, so it ends up
+;; recursing over itself and will probably eventually
+;; crash
+#+END_SRC
+
+
+*** 1.6
+
+#+NAME: sqrt
+#+BEGIN_SRC racket :lang racket
+(define ( square  x) (* x x))
+
+;; Newton's method for sqrt
+(define ( average x y ) (/ (+ x y) 2))
+
+(define (improve guess x)
+  (average guess (/ x guess)))
+
+(define (good-enough? guess x)
+   (< (abs (- (square guess) x)) 0.001)
+)
+
+(define (sqrt-iter guess x)
+  (if (good-enough? guess x) guess
+      (sqrt-iter (improve guess x) x))
+)
+
+(define (sqrt x) (sqrt-iter 1.0 x))
+(sqrt 0.0004) ;; bad approximation
+(sqrt 4)
+(sqrt 0.01)
+
+#+END_SRC
+
+#+RESULTS: sqrt
+: 0.0354008825558513
+: 2.0000000929222947
+: 0.10032578510960605
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<sqrt>>
+(define (new-if predicate then-clause else-clause)
+    (cond (predicate then-clause)
+    (else else-clause)))
+(define (sqrt-iter' guess x)
+   (new-if (good-enough? guess x)
+      guess
+      (sqrt-iter' (improve guess x) x)
+   )
+)
+#+END_SRC
+
+#+RESULTS:
+
+The issue with ~sqrt-iter'~ is:
+
++ The moment we call it, it'll also evaluate the else-clause,
+  which makes it recur forever. This makes sense why you can't
+  write if as special case of ~cond~. I also did think it would
+  work but well i guess not. Super nice example. I should think
+  evaluation in ~applicative order~. This would've worked if things
+  were evaluated in ~normal order~.
+
+*** 1.7
+
+It is giving much better result for some cases,so I'm hoping it's
+better in general too.
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+;; Different strategy for good-enough?
+(define ( square  x) (* x x))
+(define ( average x y ) (/ (+ x y) 2))
+
+(define (improve guess x)
+  (average guess (/ x guess)))
+
+
+(define (good-enough?? prev-guess cur-guess x)
+   (and (< (/ (- prev-guess cur-guess) cur-guess) 0.001)
+        (< (abs (- (square x) cur-guess)) 0.001)
+        )
+)
+
+(define (sqrt-iter2 prev-guess guess x)
+  (if (good-enough?? prev-guess guess x) guess
+      (sqrt-iter2 guess (improve guess x) x))
+)
+
+(define (sqrt2 x) (sqrt-iter2 2.0 1.0 x))
+(sqrt 0.0004)
+(sqrt 4)
+(sqrt 0.01) ;; Much better approx
+#+END_SRC
+
+#+RESULTS:
+: 0.02
+: 2
+: 0.1
+
+
+*** 1.8
+
+Implement cube root, approximation function would be
+\frac{\frac{x}{y^2} + 2y}{3}
+
+#+NAME: cube-root
+#+BEGIN_SRC racket :lang racket
+
+(define (cube x) (* x x x))
+(define (square x) (* x x))
+
+;; Cube root
+
+(define (improve guess x)
+  (/ (+ (/ x (square guess)) (* 2.0 guess)) 3.0))
+
+(define (good-enough? guess x)
+   (< (abs (- (cube guess) x)) 0.001)
+)
+
+(define (cube-root-iter guess x)
+  (if (good-enough? guess x) guess
+      (cube-root-iter (improve guess x) x))
+)
+
+(define (cube-root x) (cube-root-iter 1.0 x))
+(displayln (cube-root 8.0))
+(displayln (cube-root 0.001) )
+#+END_SRC
+
+#+RESULTS: cube-root
