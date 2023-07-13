@@ -337,7 +337,7 @@ Seeing the pattern it's computing $2^n\ if\ n>0\ else,\ 0$
 
 #+END_SRC
 
-So ~(h n)~ will basically be $2^{h(n-1)}\ if\ n>0,\ else\ 0$
+So ~(h n)~ will basically be 2^{h(n-1)} $if\ n>0,\ else\ 0$
 
 + ~(g n)~ is $5n^2$
 
@@ -414,9 +414,11 @@ x^2 - x - 1 = 0
 $$
 
 The roots to the above equation are:
+
 $$
 \psi = \frac{1 - \sqrt{5}}{2}
 $$
+
 $$
 \phi = \frac{1 + \sqrt{5}}{2}
 $$
@@ -503,9 +505,9 @@ Yeah, I can't do this right now.(Will try later)
 #+RESULTS:
 : 4
 
-+ The space grows linearly. At any point maximum, I believe it can have O(n)
-  stack size. In terms of time, it's exponential. It's easy to deduce
-  that, since at each point you kind of have two things you do. Use the current
++ The space grows linearly. I believe it can have O(n)
+  stack size. In terms of time, it's exponential, since at each point you kind
+  of have two things you do. Use the current
   thing or don't use it.
 
 *** 1.15
@@ -529,15 +531,19 @@ Yeah, I can't do this right now.(Will try later)
 + ~p~ is evaluated 5 times
 + In evaluation of ~(sine a)~, the space is ~O(loga)~ and so is time. The space is used for recursion(i.e mainly for
   evaluating procedure ~p~).
+
   $$
   \frac{a}{3.0^n} <= 0.1
   $$
+
   $$
   \frac{a}{0.1} <=  3.0^n
   $$
+
   $$
   log_3(\frac{a}{0.1}) <= log_3(3.0^n)
   $$
+
   $$
   n >= log_3(\frac{a}{0.1})
   $$
@@ -640,36 +646,47 @@ I can't believe this took me so long.
 $$
 Applying\ T_{pq}\ once
 $$
+
 $$
 a_1,b_1 \leftarrow bq + aq + ap, bp+aq
 $$
+
 $$
 Applying\ T_{pq}\ again
 $$
+
 $$
 a_2,b_2 \leftarrow b_1q + a_1q + a_1p, b_1p+a_1q
 $$
+
 $$
 a_2,b_2 \leftarrow (( bp + aq ) + ( bq + aq + ap ))q + ( bq + aq + ap )p, ( bp + aq )p + ( bq + aq + ap )q
 $$
+
 $$
 a_2,b_2 \leftarrow ( b(p+q) + a(2q+p) )q + ( bq + a(q + p) )p, (bp+aq)p + (bq + a(q + p))q
 $$
+
 $$
 a_2,b_2 \leftarrow ( b(p+q) + a(2q+p))q + ( bq + a(q + p) )p, bp^2 + apq + bq^2 + apq + aq^2
 $$
+
 $$
 a_2,b_2 \leftarrow ( b(p+q) + a(2q+p))q + ( bq + a(q + p) )p, b(p^2+q^2) + a(2pq + q^2)
 $$
+
 $$
 a_2,b_2 \leftarrow bpq + bq^2 + 2aq^2 + apq + bpq + apq + ap^2  , b2p^2 + a(2pq + q^2)
 $$
+
 $$
 a_2,b_2 \leftarrow b(2qp + q^2) + a(2pq + q^2) + a(p^2 + q^2) , b2p^2 + a(2pq + q^2)
 $$
+
 $$
 p', q' \leftarrow p^2 + q^2, 2pq+q^2
 $$
+
 #+BEGIN_SRC racket lang: racket
 
 (define (fib n)
