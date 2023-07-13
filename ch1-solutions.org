@@ -197,7 +197,8 @@ better in general too.
 *** 1.8
 
 Implement cube root, approximation function would be
-\frac{\frac{x}{y^2} + 2y}{3}
+\(\frac{\frac{x}{y^2} + 2y}{3}\)
+
 
 #+NAME: cube-root
 #+BEGIN_SRC racket :lang racket
@@ -225,3 +226,507 @@ Implement cube root, approximation function would be
 #+END_SRC
 
 #+RESULTS: cube-root
+
+*** 1.9
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+(define (inc x) (+ x 1))
+(define (dec x) (- x 1))
+(define (+ a b) ;; proc1
+  (if (= a 0) b (inc (+ (dec a ) b))))
+(define (+ a b) ;; proc2
+  (if (= a 0) b (+ (dec a) (inc b))))
+#+END_SRC
+
+For evaluating ~(+ 4 5)~, we will have the following call stack.
+
+*proc1*: Recursive process
+
+#+BEGIN_SRC racket :lang racket
+(+ 5 4)
+(inc (+ 4 4))
+(inc (inc (+ 3 4)))
+(inc (inc (inc (+ 2 4))))
+(inc (inc (inc (inc (+ 1 4)))))
+(inc (inc (inc (inc (inc (+ 0 4))))))
+(inc (inc (inc (inc (inc 4)))))
+(inc (inc (inc (inc 5))))
+(inc (inc (inc 6)))
+(inc (inc 7))
+(inc 8)
+9
+#+END_SRC
+
+*proc2*: iterative process
+
+#+BEGIN_SRC racket :lang racket
+(+ 5 4)
+(+ 4 5)
+(+ 3 6)
+(+ 2 7)
+(+ 1 8)
+(+ 0 9)
+9
+#+END_SRC
+
+*** 1.10
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+(define (A x y)
+  (cond ((= y 0) 0)
+        ((= x 0) (* 2 y))
+        ((= y 1) 2)
+        (else (A (- x 1) (A x (- y 1))))))
+
+(define (f n) (A 0 n))
+(define (g n) (A 1 n))
+(define (h n) (A 2 n))
+(define (k n) (* 5 n n))
+
+(assert_eq? (A 1 10) 1024)
+(assert_eq? (A 2 4) 65536)
+(assert_eq? (A 3 3) 65536)
+;; (A 3 3)
+;; (A 2 (A 3 2))
+;; (A 2 (A 2 (A 3 1)))
+;; (A 2 (A 2 2))
+;; (A 2 4)
+;; (A 2 4)
+#+END_SRC
+
+#+RESULTS:
+
++ ~(f n)~ computes $2n$.
+
++ ~(g n)~
+#+BEGIN_SRC racket :lang racket
+(g n)
+(A 1 n)
+(A 0 (A 1 (- n 1)))
+(* 2 (A 1 (- n 1)))
+(* 2 (A 0 (A 1 (- n 2))))
+(* 2 (* 2 (A 1 (- n 2))))
+#+END_SRC
+
+Seeing the pattern it's computing $2^n\ if\ n>0\ else,\ 0$
+
++ ~(h n)~
+
+#+BEGIN_SRC racket :lang racket
+(h n)
+(A 2 n)
+(A 1 (A 2 (- n 1)))
+(g (A 2 (-n 1)))
+(g (A 1 (A 2 (- n 2))))
+(g (g (A 2 (- n 2))))
+;; ends up being (g (g (g (g .. (g 2))))) after n- 1  evaluations
+
+;; For n=2
+;; (g (A 2 1))
+;; (g (A 2 1))
+;; (g 2)
+;; 4
+
+;; For n=3
+;; (g (A 2 2))
+;; (g (g (A 2 1)))
+;; (g (g 2))
+;; (g 4)
+;; 16
+
+#+END_SRC
+
+So ~(h n)~ will basically be $2^{h(n-1)}\ if\ n>0,\ else\ 0$
+
++ ~(g n)~ is $5n^2$
+
+*** 1.11
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+
+(define (f-rec n)
+  (if (< n 3)
+      n
+      (+ (f-rec (- n 1))
+         (* 2 (f-rec (- n 2)))
+         (* 3 (f-rec (- n 3)))
+         )))
+(define (f-iter n)
+    (define (f a b c m)
+      (if (= n m)
+          (+ a (* 2 b) (* 3 c))
+          (f (+ a (* 2 b) (* 3 c)) a b (+ m 1))))
+    (if (< n 3)
+        n
+        (f 2 1 0 3))
+    )
+
+(assert_eq? (f-rec 2) (f-iter 2))
+(assert_eq? (f-rec 3) (f-iter 3))
+(assert_eq? (f-rec 4) (f-iter 4))
+(assert_eq? (f-rec 5) (f-iter 5))
+#+END_SRC
+
+#+RESULTS:
+
+*TIL*: No. of leaves in tree generated for ~fib(n)~ computation is ~fib(n+1)~.
+
+*** 1.12
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+(define (pascal r c)
+    (cond
+      ((or (< r 0) (< c 0)) 0)
+      ((and (= r 0) (= c 0)) 1)
+      (else (+ (pascal (- r 1) c) (pascal (- r 1) (- c 1))))
+      )
+    )
+(displayln (pascal 0 0))
+(displayln (pascal 2 1))
+#+END_SRC
+
+#+RESULTS:
+: 1
+
+*** 1.13
+
+*NOTE*: proof of approximation with help from a friend who still remembered the proof.
+
+Let ~fib(n)~ be approximated by ~x~. Then,
+
+$$
+fib(n+2) = fib(n+1) + fib (n)
+$$
+
+$$
+x^{n+2} = x^{n+1} + x^n
+$$
+
+$$
+x^2 - x - 1 = 0
+$$
+
+The roots to the above equation are:
+$$
+\psi = \frac{1 - \sqrt{5}}{2}
+$$
+$$
+\phi = \frac{1 + \sqrt{5}}{2}
+$$
+
+*NOW ACTUAL PROOF*
+
+Yeah, I can't do this right now.(Will try later)
+
+*** 1.14
+
+#+BEGIN_SRC racket :lang racket
+(define (count-change amount) (cc amount 5))
+(define (cc amount kinds-of-coins)
+    (cond ((= amount 0) 1)
+        ((or (< amount 0) (= kinds-of-coins 0)) 0)
+        (else (+ (cc amount
+                    (- kinds-of-coins 1))
+        (cc (- amount
+                (first-denomination
+                kinds-of-coins))
+            kinds-of-coins)))))
+(define (first-denomination kinds-of-coins)
+  (cond ((= kinds-of-coins 1) 1)
+        ((= kinds-of-coins 2) 5)
+        ((= kinds-of-coins 3) 10)
+        ((= kinds-of-coins 4) 25)
+        ((= kinds-of-coins 5) 50)))
+;; (count-change 11)
+;; (cc 11 5)
+;; (+ (cc 11 4) (cc (- 11 (first-denomination 5)) 5))
+;; (+ (cc 11 4) (cc (- 11 50) 4))
+;; (+ (cc 11 4) 0)
+;; (+ (cc 11 3) (cc (- 11 (first-denomination 4)) 4))
+;; (+ (cc 11 3) (cc (- 11 25) 4))
+;; (+ (cc 11 3) 0 )
+;; (+ (cc 11 2) (cc (- 11 (first-denomination 3)) 3))
+;; (+ (cc 11 2) (cc (- 11 10) 3))
+;; (+ (cc 11 2) (cc 1 3))
+;; (+ (cc 11 2) (+ (cc 1 2) (cc (- 1 (first-denomination 3)) 3)))
+;; (+ (cc 11 2) (+ (cc 1 2) (cc (- 1 10) 3)))
+;; (+ (cc 11 2) (+ (cc 1 2) 0))
+;; (+ (cc 11 2) (+ (cc 1 1) (cc (- 1 (first-denomination 2)) 2)))
+;; (+ (cc 11 2) (+ (cc 1 1) 0))
+;; (+ (cc 11 2) (+ (cc 1 0) (cc (- 1 (first-denomination 1)) 1)))
+;; (+ (cc 11 2) (+ (cc 1 0) (cc 0 1)))
+;; (+ (cc 11 2) (+ (cc 1 0) 1))
+;; (+ (cc 11 2) (+ 0 1))
+;; (+ (cc 11 2) 1)
+;; (+ (+ (cc 11 1) (cc (- 11 (first-denomination 2)) 2)) 1)
+;; (+ (+ (cc 11 1) (cc (- 11 (first-denomination 2)) 2)) 1)
+;; (+ (+ (cc 11 1) (cc (- 11 10) 2)) 1)
+;; (+ (+ (cc 11 1) (cc 1 2)) 1)
+;; (+ (+ (cc 11 1) (cc 1 2)) 1) ;; (cc 1 2) evaluates to 2, i don't want to type it again
+;; (+ (+ (cc 11 1) 1) 1) ;; (cc 1 2) evaluates to 2, i don't want to type it again
+;; (+ (+ (+ (cc 11 0) (cc (- 11 (first-denomination 1)) 1)) 1) 1) ;; (cc 1 2) evaluates to 2, i don't want to type it again
+;; (+ (+ (+ (cc 11 0) (cc (- 11 1) 1)) 1) 1)
+;; (+ (+ (+ (cc 11 0) (cc 10 1)) 1) 1)
+;; (+ (+ (+ (cc 11 0) (cc 10 1)) 1) 1)
+;; (+ (+ (+ (cc 11 0) (+ (cc 10 0) (cc (- 10 (first-denomination 1)) 1))) 1) 1)
+;; (+ (+ (+ (cc 11 0) (+ (cc 10 0) (cc (- 10 1) 1))) 1) 1)
+;; (+ (+ (+ (cc 11 0) (+ (cc 10 0) (cc 9 1))) 1) 1)
+;; (+ (+ (+ (cc 11 0) (+ (cc 10 0) (cc 9 1))) 1) 1)
+;; (+ (+ (+ 0 (+ 0 (cc 9 1))) 1) 1)
+;; (+ (cc 9 1) 1 1)
+;; (+ (+ (cc 9 0) (cc (- 9 (first-denomination 1)) 1)) 1 1)
+;; (+ (+ 0 (cc (- 9 1) 1)) 1 1)
+;; (+ (cc 8 1) 1 1)
+;; (+ (cc 7 1) 1 1)
+;; (+ (cc 6 1) 1 1)
+;; (+ (cc 5 1) 1 1)
+;; (+ (cc 4 1) 1 1)
+;; (+ (cc 3 1) 1 1)
+;; (+ (cc 2 1) 1 1)
+;; (+ (cc 1 1) 1 1)
+;; (+ (+ (cc 0 1) (cc (- 1 (first-denomination 1)) 1)) 1 1)
+;; (+ (+ 1 (cc (- 1 1) 1)) 1 1)
+;; (+ (+ 1 (cc 0 1)) 1 1)
+;; (+ (+ 1 1) 1 1)
+;; (+ 2 1 1)
+;; 4
+(displayln (count-change 11))
+#+END_SRC
+
+#+RESULTS:
+: 4
+
++ The space grows linearly. At any point maximum, I believe it can have O(n)
+  stack size. In terms of time, it's exponential. It's easy to deduce
+  that, since at each point you kind of have two things you do. Use the current
+  thing or don't use it.
+
+*** 1.15
+
+#+BEGIN_SRC racket :lang racket
+(define (cube x) (* x x x))
+(define (p x) (- (* 3 x) (* 4 (cube x))))
+(define (sine angle)
+  (if (not (> (abs angle) 0.1))
+      angle
+      (p (sine (/ angle 3.0)))))
+;; (sine 12.15)
+;; (p (sine 4.05))
+;; (p (p (sine 1.35)))
+;; (p (p (p (sine 0.45))))
+;; (p (p (p (p (sine 0.15)))))
+;; (p (p (p (p (p (sine 0.05))))))
+;; (p (p (p (p (p 0.05)))))
+#+END_SRC
+
++ ~p~ is evaluated 5 times
++ In evaluation of ~(sine a)~, the space is ~O(loga)~ and so is time. The space is used for recursion(i.e mainly for
+  evaluating procedure ~p~).
+  $$
+  \frac{a}{3.0^n} <= 0.1
+  $$
+  $$
+  \frac{a}{0.1} <=  3.0^n
+  $$
+  $$
+  log_3(\frac{a}{0.1}) <= log_3(3.0^n)
+  $$
+  $$
+  n >= log_3(\frac{a}{0.1})
+  $$
+
+~n~ is the number of time we'd need to call ~p~ to evaluate ~(sine a)~. For ~a=12.15~, we get ~n>=4.37~, so we'd evaluate p ~5~ times.
+
+*** 1.16
+
+I can't believe this took me so long.
+#+BEGIN_SRC racket :lang racket
+;; Recursive fast exponentiation
+(define (even? n)
+  (= (remainder n 2) 0))
+
+(define (fast-expt b n)
+  (cond ((= n 0) 1)
+        ((even? n) (square (fast-expt b (/ n 2))))
+        (else (* b (fast-expt b (- n 1))))))
+;; Iterative exponentiation using successive squaring
+;; maintain ab^n (let a = acc)
+;; if n is even, b<- b^2 , n <- n/2
+;; if n is odd, a <- a*b , n <- n-1
+
+(define (fast-exp-iter b n acc)
+    (cond ((= n 0) acc)
+          ((even? n) (fast-exp-iter (* b b) (arithmetic-shift n -1) acc))
+          (else (fast-exp-iter b (- n 1) (* acc b)))
+          )
+    )
+#+END_SRC
+
+#+RESULTS:
+
+*** 1.17 & 1.18
+
+#+BEGIN_SRC racket :lang racket :noweb eval
+<<assert>>
+;; (define (* a b)
+;;     (if (= b 0)
+;;         0
+;;         (+ a (* a (- b 1)))))
+(define (halve x)
+  (arithmetic-shift x -1))
+(define (double x)
+  (arithmetic-shift x 1))
+(define (even? n)
+  (= (remainder n 2) 0))
+(define (* a b)
+  (cond ((= b 0) 0)
+        ((even? b) (* (double a) (halve b)))
+        (else (+ a (* a (- b 1))))
+        )
+  )
+
+(assert_eq? 0  (* 2 0))
+(assert_eq? 2 (* 2 1) )
+(assert_eq? 4 (* 2 2))
+(assert_eq? 6 (* 2 3))
+(assert_eq? 8 (* 2 4))
+(assert_eq? 10 (* 2 5))
+(assert_eq? 12 (* 2 6))
+(assert_eq? 14 (* 2 7))
+(assert_eq? 16 (* 2 8))
+(assert_eq? 18 (* 2 9))
+(assert_eq? 20 (* 2 10))
+
+;; Multiplication in logarithmic time and constant space(due to being iterative)
+;; Like exponentiation, maintain acc + ab
+;; if b = 0, acc
+;; if even b, b <- b/2; a <- 2a
+;; else , b <-  b-1; acc <- acc +a
+(define (mult-iter a b acc)
+    (cond ((= b 0) acc)
+          ((even? b) (mult-iter (double a) (halve b) acc))
+          (else (mult-iter a (- b 1) (+ acc a)))
+          )
+    )
+(assert_eq? (mult-iter 2 0 0) (* 2 0))
+(assert_eq? (mult-iter 2 1 0) (* 2 1))
+(assert_eq? (mult-iter 2 2 0) (* 2 2))
+(assert_eq? (mult-iter 2 3 0) (* 2 3))
+(assert_eq? (mult-iter 2 4 0) (* 2 4))
+(assert_eq? (mult-iter 2 5 0) (* 2 5))
+(assert_eq? (mult-iter 2 6 0) (* 2 6))
+(assert_eq? (mult-iter 2 7 0) (* 2 7))
+(assert_eq? (mult-iter 2 8 0) (* 2 8))
+(assert_eq? (mult-iter 2 9 0) (* 2 9))
+(assert_eq? (mult-iter 2 10 0) (* 2 10))
+
+#+END_SRC
+
+#+RESULTS:
+
+*** 1.19
+
++ Let the transformation $a,b \leftarrow a+b,a$ be $T$
++ Then $T^n$ gives us $a,b = fib(n+1),fib(n)$ starting with pair $(a,b) = (1,0)$
++ Let $T_{pq}$ be the transformation $a,b \leftarrow bq + aq + ap, bp+aq$ and
+
+$$
+Applying\ T_{pq}\ once
+$$
+$$
+a_1,b_1 \leftarrow bq + aq + ap, bp+aq
+$$
+$$
+Applying\ T_{pq}\ again
+$$
+$$
+a_2,b_2 \leftarrow b_1q + a_1q + a_1p, b_1p+a_1q
+$$
+$$
+a_2,b_2 \leftarrow (( bp + aq ) + ( bq + aq + ap ))q + ( bq + aq + ap )p, ( bp + aq )p + ( bq + aq + ap )q
+$$
+$$
+a_2,b_2 \leftarrow ( b(p+q) + a(2q+p) )q + ( bq + a(q + p) )p, (bp+aq)p + (bq + a(q + p))q
+$$
+$$
+a_2,b_2 \leftarrow ( b(p+q) + a(2q+p))q + ( bq + a(q + p) )p, bp^2 + apq + bq^2 + apq + aq^2
+$$
+$$
+a_2,b_2 \leftarrow ( b(p+q) + a(2q+p))q + ( bq + a(q + p) )p, b(p^2+q^2) + a(2pq + q^2)
+$$
+$$
+a_2,b_2 \leftarrow bpq + bq^2 + 2aq^2 + apq + bpq + apq + ap^2  , b2p^2 + a(2pq + q^2)
+$$
+$$
+a_2,b_2 \leftarrow b(2qp + q^2) + a(2pq + q^2) + a(p^2 + q^2) , b2p^2 + a(2pq + q^2)
+$$
+$$
+p', q' \leftarrow p^2 + q^2, 2pq+q^2
+$$
+#+BEGIN_SRC racket lang: racket
+
+(define (fib n)
+    (fib-iter 1 0 0 1 n))
+(define (sq x) (* x x))
+(define (fib-iter a b p q count)
+  (cond ((= count 0) b)
+        ((even? count)
+         (fib-iter a
+                   b
+                   (+ (sq p) (sq q)); compute p ′
+                   (+ (* 2 p q) (sq q)); compute q ′
+                   (/ count 2)))
+        (else (fib-iter (+ (* b q) (* a q) (* a p))
+                        (+ (* b p) (* a q))
+                        p
+                        q
+                        (- count 1)))))
+
+#+END_SRC
+
+
+*** 1.20
+
+#+BEGIN_SRC racket :lang racket
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+;;Show the evaluation in normal order
+;; Let rem = remainder
+;; (gcd 206 40)
+;; (gcd 40 (rem 206 40)) ;; (rem 206 40) gets evaluated for the condition check
+;; (gcd (rem 206 40) (rem 40 (rem 206 40 ))) ;;
+;; (gcd (rem 206 40) (rem 40 6)) ;; (rem 40 6) gets evaluated for condition check
+;; (gcd  (rem 40 6) (rem (rem 206 40) (rem 40 6)))
+;; (gcd  (rem 40 6) (rem 6 4)) ;; (rem 6 4) gets evaluated for condition check
+;; (gcd  (rem 6 4) (rem (rem 40 6) (rem 6 4)))
+;; (gcd  (rem 6 4) (rem 4 2))
+;; (gcd  (rem 6 4) 0) ;; this evaluation done for condition check
+;; (rem 6 4)
+;; 2
+
+;; So i guess rem is evaluated 10 times(?) in normal order evaluation
+
+
+;; For applicative order evalution
+;; (gcd 206 40)
+;; (gcd 40 (rem 206 40))
+;; (gcd 40 6)
+;; (gcd 6 (rem 40 6))
+;; (gcd 6 4)
+;; (gcd 4 (rem 6 4))
+;; (gcd 4 2)
+;; (gcd 2 (rem 4 2))
+;; (gcd 2 0)
+;; 2
+
+;; It get's called 4 times in applicative order
+#+END_SRC
